@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@theme {
+  --color-platinum-50: #fafafa;
+  --color-platinum-100: #f4f4f2;
+  --color-platinum-200: #e8e8e5;
+  --color-platinum-300: #d5d5d0;
+  --color-platinum-400: #b5b5ae;
+  --color-graphite-900: #17191d;
+  --color-graphite-800: #23262b;
+  --font-sans: var(--font-geist-sans), ui-sans-system, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+body {
+  background: #fafafa;
+  color: #17191d;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
