@@ -14,31 +14,41 @@ export type LiteratureArticle = {
 
 type EuropePmcResult = {
   id?: string;
+  source?: string;
   title?: string;
   journalTitle?: string;
+  journalInfo?: { journal?: { title?: string } };
   pubYear?: string;
+  firstPublicationDate?: string;
   authorString?: string;
   doi?: string;
   pmid?: string;
+  pmcid?: string;
   abstractText?: string;
 };
 
 function normalize(r: EuropePmcResult): LiteratureArticle {
   const pmid = r.pmid ?? null;
+  const pmcid = r.pmcid ?? null;
+  // PMC-only records (source PMC) carry no PMID; link them to their
+  // Europe PMC article page instead of the generic homepage.
+  const url = pmid
+    ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`
+    : pmcid
+      ? `https://europepmc.org/article/PMC/${pmcid}`
+      : r.doi
+        ? `https://doi.org/${r.doi}`
+        : "https://europepmc.org/";
   return {
-    id: r.id ?? pmid ?? r.title ?? "unknown",
+    id: r.id ?? pmid ?? pmcid ?? r.title ?? "unknown",
     title: r.title ?? "Untitled",
-    journal: r.journalTitle ?? null,
-    year: r.pubYear ?? null,
+    journal: r.journalTitle ?? r.journalInfo?.journal?.title ?? null,
+    year: r.pubYear ?? r.firstPublicationDate?.slice(0, 4) ?? null,
     authors: r.authorString ?? null,
     doi: r.doi ?? null,
     pmid,
     abstract: r.abstractText ?? null,
-    url: pmid
-      ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`
-      : r.doi
-        ? `https://doi.org/${r.doi}`
-        : "https://europepmc.org/",
+    url,
   };
 }
 
