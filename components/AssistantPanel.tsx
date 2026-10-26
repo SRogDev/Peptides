@@ -21,6 +21,13 @@ export default function AssistantPanel({ peptideId, peptideName }: { peptideId: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ peptideId, question }),
       });
+      if (res.status === 429) {
+        const retryAfter = res.headers.get("Retry-After");
+        setError(
+          `Rate limit reached — at most 10 questions per minute per network. Please wait ${retryAfter ? `${retryAfter} seconds` : "a few seconds"} and try again.`,
+        );
+        return;
+      }
       if (!res.ok) throw new Error(`Assistant returned ${res.status}`);
       const data = (await res.json()) as { answer: string; mode: string };
       setAnswer(data.answer);

@@ -4,6 +4,7 @@ import { openai } from "@ai-sdk/openai";
 import { getPeptide } from "@/lib/peptides";
 import { searchLiterature } from "@/lib/europepmc";
 import { averageHydropathy, netChargeAtNeutralPH } from "@/lib/sequence";
+import { assistantRateLimiter, getClientIp } from "@/lib/rate-limit";
 
 /**
  * Research assistant.
@@ -13,8 +14,24 @@ import { averageHydropathy, netChargeAtNeutralPH } from "@/lib/sequence";
  *   evidence is insufficient.
  * - If no key is set, it returns a deterministic evidence summary instead of
  *   a model answer. It never invents papers, identifiers or results.
+ * - Rate limit (Peptides v2, no auth): 10 requests per minute per client
+ *   IP, token bucket, on every request to this route (both modes, so the
+ *   rule cannot be bypassed by switching modes). Exhausted buckets get
+ *   HTTP 429 + Retry-After. The bucket is per server instance in memory;
+ *   see lib/rate-limit.ts for the honest serverless limit.
  */
 export async function POST(request: Request) {
+  const limit = assistantRateLimiter.consume(getClientIp(request));
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit reached: at most 10 assistant questions per minute per network. Please wait a few seconds and try again." },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds), "X-RateLimit-Remaining": "0" },
+      },
+    );
+  }
+  const remainingHeaders = { "X-RateLimit-Remaining": String(limit.remaining) };
   const body = (await request.json().catch(() => null)) as { peptideId?: string; question?: string } | null;
   const peptide = body?.peptideId ? getPeptide(body.peptideId) : undefined;
   const question = body?.question?.trim();
@@ -61,7 +78,7 @@ export async function POST(request: Request) {
       "",
       "What this does not establish: this summary does not prove any clinical effect, dose, or safety claim. If the question needs evidence beyond the record and papers above, the honest answer is: insufficient evidence in this tool.",
     ].join("\n");
-    return NextResponse.json({ answer, mode: "evidence" });
+    return NextResponse.json({ answer, mode: "evidence" }, { headers: remainingHeaders });
   }
 
   try {
@@ -77,7 +94,7 @@ export async function POST(request: Request) {
       ].join(" "),
       prompt: `Question about ${peptide.name}: ${question}\n\nRetrieved facts:\n${facts}\n\nRetrieved literature:\n${literature}`,
     });
-    return NextResponse.json({ answer: text, mode: "model" });
+    return NextResponse.json({ answer: text, mode: "model" }, { headers: remainingHeaders });
   } catch {
     return NextResponse.json({ error: "AI provider unavailable" }, { status: 502 });
   }

@@ -5,6 +5,7 @@ import { MELITTIN_2MLT_CHAIN_A_CA } from "@/lib/melittin-ca";
 import { averageHydropathy, formatSequence, molecularWeightFromSequence, netChargeAtNeutralPH } from "@/lib/sequence";
 import LiteraturePanel from "@/components/LiteraturePanel";
 import AssistantPanel from "@/components/AssistantPanel";
+import CollapsibleText from "@/components/CollapsibleText";
 import MoleculeViewer from "@/components/MoleculeViewerLazy";
 
 export function generateStaticParams() {
@@ -24,18 +25,22 @@ export default async function PeptideDetail({ params }: { params: Promise<{ id: 
       <header className="mt-4">
         <p className="text-[11px] font-medium uppercase tracking-[0.22em] text-neutral-400">{peptide.organismContext}</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-neutral-900 sm:text-4xl">{peptide.name}</h1>
-        <p className="mt-3 max-w-3xl leading-relaxed text-neutral-600">{peptide.context}</p>
+        <CollapsibleText text={peptide.context} />
       </header>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-3">
         <div className="rounded-2xl border border-neutral-200 bg-white p-5 lg:col-span-2">
           <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-500">Amino acid sequence</h2>
           <p className="mt-3 break-all font-mono text-lg leading-relaxed tracking-wide text-neutral-900">{formatSequence(peptide.sequence)}</p>
-          <p className="mt-2 text-sm text-neutral-500">
-            {peptide.sequence.length} residues
-            {peptide.disulfideBonds ? ` · Disulfide: ${peptide.disulfideBonds}` : " · No disulfide recorded"}
-            {peptide.terminalModification ? ` · ${peptide.terminalModification}` : ""}
-          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-700">{peptide.sequence.length} residues</span>
+            <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-700">
+              {peptide.disulfideBonds ? `Disulfide: ${peptide.disulfideBonds}` : "No disulfide recorded"}
+            </span>
+            {peptide.terminalModification && (
+              <span className="rounded-full border border-neutral-200 bg-neutral-50 px-3 py-1 text-xs text-neutral-700">{peptide.terminalModification}</span>
+            )}
+          </div>
         </div>
         <div className="rounded-2xl border border-neutral-200 bg-white p-5">
           <h2 className="text-sm font-medium uppercase tracking-wider text-neutral-500">Sources</h2>
